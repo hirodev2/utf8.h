@@ -548,19 +548,29 @@ utf8_constexpr14_impl size_t utf8nlen(const utf8_int8_t *str, size_t n) {
   size_t length = 0;
 
   while ((size_t)(str - t) < n && '\0' != *str) {
+    size_t cp_len;
     if (0xf0 == (0xf8 & *str)) {
       /* 4-byte utf8 code point (began with 0b11110xxx) */
-      str += 4;
+      cp_len = 4;
     } else if (0xe0 == (0xf0 & *str)) {
       /* 3-byte utf8 code point (began with 0b1110xxxx) */
-      str += 3;
+      cp_len = 3;
     } else if (0xc0 == (0xe0 & *str)) {
       /* 2-byte utf8 code point (began with 0b110xxxxx) */
-      str += 2;
+      cp_len = 2;
     } else { /* if (0x00 == (0x80 & *s)) { */
       /* 1-byte ascii (began with 0b0xxxxxxx) */
-      str += 1;
+      cp_len = 1;
     }
+
+    /* Advance by the codepoint's byte-width, but never step past the NUL
+     * terminator or the n-byte limit. A truncated trailing multibyte sequence
+     * (a lead byte whose continuation bytes run off the end of the buffer) must
+     * not march str beyond the buffer, otherwise the next "'\0' != *str" check
+     * reads out of bounds. */
+    do {
+      str += 1;
+    } while (--cp_len && (size_t)(str - t) < n && '\0' != *str);
 
     /* no matter the bytes we marched s forward by, it was
      * only 1 utf8 codepoint */

@@ -625,6 +625,18 @@ UTF8_TEST(utf8len, data) { ASSERT_EQ(53, utf8len(data)); }
 
 UTF8_TEST(utf8nlen, data) { ASSERT_EQ(52, utf8nlen(data, 103)); }
 
+UTF8_TEST(utf8len, truncated_trailing_lead_byte) {
+  /* Regression: a NUL-terminated string whose final byte is a multibyte lead
+     byte with no continuation bytes. utf8len()/utf8nlen() must not march the
+     pointer past the terminator (previously an out-of-bounds read). */
+  char s[3];
+  s[0] = '\x2c'; /* ',' (1-byte ascii) */
+  s[1] = '\xdf'; /* 2-byte lead byte, but truncated by the NUL terminator */
+  s[2] = '\0';
+  ASSERT_EQ(2, utf8len(s));
+  ASSERT_EQ(2, utf8nlen(s, 3));
+}
+
 UTF8_TEST(utf8cat, empty_cat_data) {
   char cat[512] = {'\0'};
 
