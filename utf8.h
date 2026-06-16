@@ -1221,27 +1221,38 @@ int utf8makevalid(utf8_int8_t *str, const utf8_int32_t replacement) {
 utf8_constexpr14_impl utf8_int8_t *
 utf8codepoint(const utf8_int8_t *utf8_restrict str,
               utf8_int32_t *utf8_restrict out_codepoint) {
+  /* Determine the codepoint's byte-width and lead-byte payload from str[0]. */
+  size_t n, i;
+  utf8_int32_t cp;
+
   if (0xf0 == (0xf8 & str[0])) {
     /* 4 byte utf8 codepoint */
-    *out_codepoint = ((0x07 & str[0]) << 18) | ((0x3f & str[1]) << 12) |
-                     ((0x3f & str[2]) << 6) | (0x3f & str[3]);
-    str += 4;
+    n = 4;
+    cp = 0x07 & str[0];
   } else if (0xe0 == (0xf0 & str[0])) {
     /* 3 byte utf8 codepoint */
-    *out_codepoint =
-        ((0x0f & str[0]) << 12) | ((0x3f & str[1]) << 6) | (0x3f & str[2]);
-    str += 3;
+    n = 3;
+    cp = 0x0f & str[0];
   } else if (0xc0 == (0xe0 & str[0])) {
     /* 2 byte utf8 codepoint */
-    *out_codepoint = ((0x1f & str[0]) << 6) | (0x3f & str[1]);
-    str += 2;
+    n = 2;
+    cp = 0x1f & str[0];
   } else {
     /* 1 byte utf8 codepoint otherwise */
-    *out_codepoint = str[0];
-    str += 1;
+    n = 1;
+    cp = (utf8_int32_t)str[0];
   }
 
-  return (utf8_int8_t *)str;
+  /* Fold in the continuation bytes, but never read past a NUL terminator: a
+   * truncated trailing multibyte sequence (a lead byte whose continuation bytes
+   * run off the end of a NUL-terminated buffer) must not read out of bounds.
+   * For well-formed input this is identical to the previous fixed reads. */
+  for (i = 1; i < n && '\0' != str[i]; i++) {
+    cp = (cp << 6) | (0x3f & str[i]);
+  }
+
+  *out_codepoint = cp;
+  return (utf8_int8_t *)(str + i);
 }
 
 utf8_constexpr14_impl size_t utf8codepointcalcsize(const utf8_int8_t *str) {

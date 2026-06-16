@@ -1248,6 +1248,30 @@ UTF8_TEST(utf8codepoint, data) {
   }
 }
 
+UTF8_TEST(utf8codepoint, truncated_multibyte_no_overread) {
+  /* Regression: a multibyte lead byte whose continuation bytes are truncated by
+     the NUL terminator. utf8codepoint() must not read past the terminator, and
+     must stop the cursor AT the NUL so callers (utf8lwr, utf8cmp, ...) terminate.
+     Drives the same out-of-bounds read that crashed utf8lwr on input {0xe7}. */
+  utf8_int8_t s[2];
+  utf8_int32_t codepoint = 0;
+  const utf8_int8_t *next;
+  s[0] = (utf8_int8_t)0xe7; /* 3-byte lead, but the sequence is truncated */
+  s[1] = '\0';
+  next = utf8codepoint(s, &codepoint);
+  ASSERT_TRUE(next == s + 1); /* advanced to the NUL, not past it */
+}
+
+UTF8_TEST(utf8lwr, truncated_multibyte_no_overread) {
+  /* utf8lwr -> utf8codepoint on a truncated trailing multibyte sequence must not
+     read out of bounds (this is the reported utf8codepoint OOB via utf8lwr). */
+  utf8_int8_t s[2];
+  s[0] = (utf8_int8_t)0xe7;
+  s[1] = '\0';
+  utf8lwr(s);
+  ASSERT_EQ('\0', s[1]);
+}
+
 UTF8_TEST(utf8codepointcalcsize, data) {
   const char *v;
   // No -1 here since we start at the beginning
