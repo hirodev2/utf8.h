@@ -40,6 +40,12 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
   if(CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
     set(UTF8_C_WARNINGS "/Wall /WX /wd4514 /wd5045")
+    check_c_compiler_flag("/clang:-Wno-implicit-void-ptr-cast"
+                          UTF8_C_HAS_NO_IMPLICIT_VOID_PTR_CAST)
+    if(UTF8_C_HAS_NO_IMPLICIT_VOID_PTR_CAST)
+      string(APPEND UTF8_C_WARNINGS
+             " /clang:-Wno-implicit-void-ptr-cast")
+    endif()
     set(UTF8_C_USE_STD_FLAG FALSE)
   else()
     set(UTF8_C_WARNINGS "-Wall -Wextra -Weverything -Werror -Wno-poison-system-directories -Wno-global-constructors")
