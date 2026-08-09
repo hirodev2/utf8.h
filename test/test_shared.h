@@ -626,14 +626,12 @@ UTF8_TEST(utf8len, data) { ASSERT_EQ(53, utf8len(data)); }
 UTF8_TEST(utf8nlen, data) { ASSERT_EQ(52, utf8nlen(data, 103)); }
 
 UTF8_TEST(utf8len, truncated_trailing_lead_byte) {
-  /* Regression: a NUL-terminated string whose final byte is a multibyte lead
-     byte with no continuation bytes. utf8len()/utf8nlen() must not march the
-     pointer past the terminator (previously an out-of-bounds read). */
   char s[3];
-  s[0] = '\x2c'; /* ',' (1-byte ascii) */
-  s[1] = '\xdf'; /* 2-byte lead byte, but truncated by the NUL terminator */
+  s[0] = '\x2c';
+  s[1] = '\xdf';
   s[2] = '\0';
   ASSERT_EQ(2, utf8len(s));
+  ASSERT_EQ(1, utf8nlen(s, 2));
   ASSERT_EQ(2, utf8nlen(s, 3));
 }
 
@@ -1249,22 +1247,16 @@ UTF8_TEST(utf8codepoint, data) {
 }
 
 UTF8_TEST(utf8codepoint, truncated_multibyte_no_overread) {
-  /* Regression: a multibyte lead byte whose continuation bytes are truncated by
-     the NUL terminator. utf8codepoint() must not read past the terminator, and
-     must stop the cursor AT the NUL so callers (utf8lwr, utf8cmp, ...) terminate.
-     Drives the same out-of-bounds read that crashed utf8lwr on input {0xe7}. */
   utf8_int8_t s[2];
   utf8_int32_t codepoint = 0;
   const utf8_int8_t *next;
-  s[0] = (utf8_int8_t)0xe7; /* 3-byte lead, but the sequence is truncated */
+  s[0] = (utf8_int8_t)0xe7;
   s[1] = '\0';
   next = utf8codepoint(s, &codepoint);
-  ASSERT_TRUE(next == s + 1); /* advanced to the NUL, not past it */
+  ASSERT_TRUE(next == s + 1);
 }
 
 UTF8_TEST(utf8lwr, truncated_multibyte_no_overread) {
-  /* utf8lwr -> utf8codepoint on a truncated trailing multibyte sequence must not
-     read out of bounds (this is the reported utf8codepoint OOB via utf8lwr). */
   utf8_int8_t s[2];
   s[0] = (utf8_int8_t)0xe7;
   s[1] = '\0';

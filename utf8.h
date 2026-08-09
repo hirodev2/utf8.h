@@ -548,7 +548,7 @@ utf8_constexpr14_impl size_t utf8nlen(const utf8_int8_t *str, size_t n) {
   size_t length = 0;
 
   while ((size_t)(str - t) < n && '\0' != *str) {
-    size_t cp_len;
+    size_t cp_len = 1;
     if (0xf0 == (0xf8 & *str)) {
       /* 4-byte utf8 code point (began with 0b11110xxx) */
       cp_len = 4;
@@ -563,23 +563,20 @@ utf8_constexpr14_impl size_t utf8nlen(const utf8_int8_t *str, size_t n) {
       cp_len = 1;
     }
 
-    /* Advance by the codepoint's byte-width, but never step past the NUL
-     * terminator or the n-byte limit. A truncated trailing multibyte sequence
-     * (a lead byte whose continuation bytes run off the end of the buffer) must
-     * not march str beyond the buffer, otherwise the next "'\0' != *str" check
-     * reads out of bounds. */
+    /* Do not advance past the NUL or the n-byte limit. */
     do {
       str += 1;
     } while (--cp_len && (size_t)(str - t) < n && '\0' != *str);
+
+    if (cp_len && (size_t)(str - t) == n) {
+      break;
+    }
 
     /* no matter the bytes we marched s forward by, it was
      * only 1 utf8 codepoint */
     length++;
   }
 
-  if ((size_t)(str - t) > n) {
-    length--;
-  }
   return length;
 }
 
@@ -1221,9 +1218,8 @@ int utf8makevalid(utf8_int8_t *str, const utf8_int32_t replacement) {
 utf8_constexpr14_impl utf8_int8_t *
 utf8codepoint(const utf8_int8_t *utf8_restrict str,
               utf8_int32_t *utf8_restrict out_codepoint) {
-  /* Determine the codepoint's byte-width and lead-byte payload from str[0]. */
-  size_t n, i;
-  utf8_int32_t cp;
+  size_t n = 1, i = 1;
+  utf8_int32_t cp = (utf8_int32_t)str[0];
 
   if (0xf0 == (0xf8 & str[0])) {
     /* 4 byte utf8 codepoint */
@@ -1237,16 +1233,9 @@ utf8codepoint(const utf8_int8_t *utf8_restrict str,
     /* 2 byte utf8 codepoint */
     n = 2;
     cp = 0x1f & str[0];
-  } else {
-    /* 1 byte utf8 codepoint otherwise */
-    n = 1;
-    cp = (utf8_int32_t)str[0];
   }
 
-  /* Fold in the continuation bytes, but never read past a NUL terminator: a
-   * truncated trailing multibyte sequence (a lead byte whose continuation bytes
-   * run off the end of a NUL-terminated buffer) must not read out of bounds.
-   * For well-formed input this is identical to the previous fixed reads. */
+  /* Stop at the NUL if the sequence is truncated. */
   for (i = 1; i < n && '\0' != str[i]; i++) {
     cp = (cp << 6) | (0x3f & str[i]);
   }
