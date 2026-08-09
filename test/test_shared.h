@@ -1250,7 +1250,7 @@ UTF8_TEST(utf8codepoint, truncated_multibyte_no_overread) {
   utf8_int8_t s[2];
   utf8_int32_t codepoint = 0;
   const utf8_int8_t *next;
-  s[0] = (utf8_int8_t)0xe7;
+  s[0] = '\xe7';
   s[1] = '\0';
   next = utf8codepoint(s, &codepoint);
   ASSERT_TRUE(next == s + 1);
@@ -1258,7 +1258,7 @@ UTF8_TEST(utf8codepoint, truncated_multibyte_no_overread) {
 
 UTF8_TEST(utf8lwr, truncated_multibyte_no_overread) {
   utf8_int8_t s[2];
-  s[0] = (utf8_int8_t)0xe7;
+  s[0] = '\xe7';
   s[1] = '\0';
   utf8lwr(s);
   ASSERT_EQ('\0', s[1]);
