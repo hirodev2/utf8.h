@@ -27,6 +27,7 @@ cmake_minimum_required(VERSION 3.15)
 project(utf8)
 
 include(CTest)
+include(CheckCCompilerFlag)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 
@@ -42,6 +43,11 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STR
     set(UTF8_C_USE_STD_FLAG FALSE)
   else()
     set(UTF8_C_WARNINGS "-Wall -Wextra -Weverything -Werror -Wno-poison-system-directories -Wno-global-constructors")
+    check_c_compiler_flag("-Wno-implicit-void-ptr-cast"
+                          UTF8_C_HAS_NO_IMPLICIT_VOID_PTR_CAST)
+    if(UTF8_C_HAS_NO_IMPLICIT_VOID_PTR_CAST)
+      string(APPEND UTF8_C_WARNINGS " -Wno-implicit-void-ptr-cast")
+    endif()
     set(UTF8_C_USE_STD_FLAG TRUE)
   endif()
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
