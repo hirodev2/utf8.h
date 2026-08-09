@@ -26,6 +26,10 @@
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #pragma clang diagnostic ignored "-Wsign-conversion"
 #pragma clang diagnostic ignored "-Wshorten-64-to-32"
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#if __has_warning("-Wimplicit-void-ptr-cast")
+#pragma clang diagnostic ignored "-Wimplicit-void-ptr-cast"
+#endif
 #if __has_warning("-Wunsafe-buffer-usage")
 #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #endif
